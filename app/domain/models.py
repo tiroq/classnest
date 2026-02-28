@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional
 
@@ -29,7 +29,7 @@ class ContentItem(BaseModel):
     category: Category
     image_url: Optional[str] = None
     source_url: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class Pack(BaseModel):
@@ -38,7 +38,7 @@ class Pack(BaseModel):
     id: int
     teacher_id: int
     name: str
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class PackItem(BaseModel):
@@ -72,17 +72,17 @@ class Rules(BaseModel):
 class SeenItem(BaseModel):
     teacher_id: int
     content_item_id: int
-    seen_at: datetime = Field(default_factory=datetime.utcnow)
+    seen_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class HiddenItem(BaseModel):
     teacher_id: int
     content_item_id: int
-    hidden_at: datetime = Field(default_factory=datetime.utcnow)
+    hidden_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class ExportedItem(BaseModel):
     teacher_id: int
     group_id: str
     content_item_id: int
-    exported_at: datetime = Field(default_factory=datetime.utcnow)
+    exported_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

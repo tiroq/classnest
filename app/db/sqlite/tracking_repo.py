@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.db.contracts.tracking import AbstractTrackingRepository
 from app.db.sqlite.connection import get_connection
@@ -16,7 +16,7 @@ class SQLiteTrackingRepository(AbstractTrackingRepository):
 
     async def mark_seen(self, teacher_id: int, content_item_id: int) -> None:
         conn = await get_connection()
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         await conn.execute(
             "INSERT INTO seen_items (teacher_id, content_item_id, seen_at) VALUES (?, ?, ?)",
             (teacher_id, content_item_id, now),
@@ -25,7 +25,7 @@ class SQLiteTrackingRepository(AbstractTrackingRepository):
 
     async def mark_hidden(self, teacher_id: int, content_item_id: int) -> None:
         conn = await get_connection()
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         await conn.execute(
             "INSERT OR IGNORE INTO hidden_items (teacher_id, content_item_id, hidden_at)"
             " VALUES (?, ?, ?)",
@@ -45,7 +45,7 @@ class SQLiteTrackingRepository(AbstractTrackingRepository):
         self, teacher_id: int, group_id: str, content_item_id: int
     ) -> None:
         conn = await get_connection()
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         await conn.execute(
             "INSERT INTO exported_items (teacher_id, group_id, content_item_id, exported_at)"
             " VALUES (?, ?, ?, ?)",

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 import aiosqlite
@@ -51,7 +51,7 @@ class SQLiteContentRepository(AbstractContentRepository):
         source_url: Optional[str],
     ) -> ContentItem:
         conn = await get_connection()
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         async with conn.execute(
             "INSERT INTO content_items (title, category, image_url, source_url, created_at)"
             " VALUES (?, ?, ?, ?, ?)",

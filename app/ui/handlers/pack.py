@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 
 from aiogram import Router
 from aiogram.types import CallbackQuery, FSInputFile
@@ -91,7 +91,7 @@ async def cb_export_pack(callback: CallbackQuery) -> None:
     await callback.answer("⏳ Generating PDF…")
     content_items = [ci for _, ci in items_with_pi]
 
-    filename = f"pack_{teacher_id}_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}.pdf"
+    filename = f"pack_{teacher_id}_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}.pdf"
     out_path = await export_pack(
         items=content_items,
         layout=layout,

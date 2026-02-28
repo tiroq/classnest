@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 import aiosqlite
@@ -38,7 +38,7 @@ class SQLitePackRepository(AbstractPackRepository):
 
     async def create_pack(self, teacher_id: int, name: str) -> Pack:
         conn = await get_connection()
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         async with conn.execute(
             "INSERT INTO packs (teacher_id, name, created_at) VALUES (?, ?, ?)",
             (teacher_id, name, now),
