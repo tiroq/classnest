@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title_suffix %} — {{ "Edit" if item else "New" }} Item{% endblock %}
+{% block content %}
+<h1>{{ "Edit Item #" + item.id|string if item else "New Content Item" }}</h1>
+{% if error %}<div class="alert alert-error">{{ error }}</div>{% endif %}
+{% if success %}<div class="alert alert-success">{{ success }}</div>{% endif %}
+
+<form method="post" enctype="multipart/form-data">
+    <div class="field">
+        <label>Title *</label>
+        <input name="title" value="{{ item.title if item else '' }}" required maxlength="200">
+    </div>
+    <div class="field">
+        <label>Category *</label>
+        <select name="category" required>
+            <option value="activity" {% if item and item.category.value == "activity" %}selected{% endif %}>Activity</option>
+            <option value="craft" {% if item and item.category.value == "craft" %}selected{% endif %}>Craft</option>
+            <option value="logic" {% if item and item.category.value == "logic" %}selected{% endif %}>Logic</option>
+        </select>
+    </div>
+    <div class="field">
+        <label>Image URL</label>
+        <input name="image_url" value="{{ item.image_url or '' if item else '' }}">
+    </div>
+    <div class="field">
+        <label>Upload Image (overrides URL)</label>
+        <input type="file" name="image_file" accept="image/*">
+    </div>
+    <div class="field">
+        <label>Source URL</label>
+        <input name="source_url" value="{{ item.source_url or '' if item else '' }}">
+    </div>
+    <button type="submit" class="btn btn-primary">Save</button>
+    <a href="/admin/content" class="btn btn-secondary">Cancel</a>
+</form>
+{% endblock %}

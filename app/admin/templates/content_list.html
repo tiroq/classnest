@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title_suffix %} — Content{% endblock %}
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+    <h1>Content Items</h1>
+    <a href="/admin/content/new" class="btn btn-primary">+ New Item</a>
+</div>
+
+<form method="get" style="margin-bottom:16px;display:flex;gap:8px;">
+    <select name="category">
+        <option value="">All categories</option>
+        <option value="activity" {% if current_category == "activity" %}selected{% endif %}>Activity</option>
+        <option value="craft" {% if current_category == "craft" %}selected{% endif %}>Craft</option>
+        <option value="logic" {% if current_category == "logic" %}selected{% endif %}>Logic</option>
+    </select>
+    <button class="btn btn-secondary" type="submit">Filter</button>
+</form>
+
+<table>
+    <thead><tr><th>ID</th><th>Title</th><th>Category</th><th>Image</th><th>Actions</th></tr></thead>
+    <tbody>
+    {% for item in items %}
+    <tr>
+        <td>{{ item.id }}</td>
+        <td>{{ item.title }}</td>
+        <td>{{ item.category.value }}</td>
+        <td>{% if item.image_url %}<a href="{{ item.image_url }}" target="_blank">View</a>{% else %}—{% endif %}</td>
+        <td>
+            <a href="/admin/content/{{ item.id }}/edit" class="btn btn-secondary">Edit</a>
+            <form method="post" action="/admin/content/{{ item.id }}/delete" style="display:inline;">
+                <button class="btn btn-danger" onclick="return confirm('Delete?')">Delete</button>
+            </form>
+        </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+<div class="pagination">
+    {% if page > 1 %}<a href="?page={{ page - 1 }}&category={{ current_category }}">Prev</a>{% endif %}
+    <a class="active">{{ page }}</a>
+    {% if has_next %}<a href="?page={{ page + 1 }}&category={{ current_category }}">Next</a>{% endif %}
+</div>
+{% endblock %}

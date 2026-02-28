@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title_suffix %} — Dashboard{% endblock %}
+{% block content %}
+<h1>Dashboard</h1>
+<div class="grid grid-3">
+    <div class="stat-card">
+        <div class="value">{{ total_items }}</div>
+        <div class="label">Total Items</div>
+    </div>
+    {% for cat, cnt in by_category.items() %}
+    <div class="stat-card">
+        <div class="value">{{ cnt }}</div>
+        <div class="label">{{ cat | capitalize }}</div>
+    </div>
+    {% endfor %}
+</div>
+<h2 style="margin-top:32px;">Current Rules</h2>
+<pre style="background:#fff;padding:16px;border-radius:8px;font-size:13px;">{{ rules_json }}</pre>
+{% endblock %}

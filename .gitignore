@@ -3,6 +3,9 @@ __pycache__/
 *.py[codz]
 *$py.class
 
+# ClassNest runtime data
+data/
+
 # C extensions
 *.so
 

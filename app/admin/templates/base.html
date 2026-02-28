@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ClassNest Admin{% block title_suffix %}{% endblock %}</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: system-ui, sans-serif; color: #222; background: #f4f6fa; }
+        nav { background: #1a2640; color: #fff; padding: 12px 24px; display: flex; gap: 24px; align-items: center; }
+        nav a { color: #cdd9ec; text-decoration: none; font-size: 14px; }
+        nav a:hover { color: #fff; }
+        nav .brand { font-weight: 700; font-size: 18px; color: #fff; margin-right: 16px; }
+        .container { max-width: 1100px; margin: 32px auto; padding: 0 24px; }
+        h1 { font-size: 22px; margin-bottom: 24px; }
+        h2 { font-size: 18px; margin-bottom: 16px; }
+        table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; }
+        th, td { padding: 10px 14px; text-align: left; font-size: 14px; border-bottom: 1px solid #e8ecf2; }
+        th { background: #eef1f7; font-weight: 600; }
+        tr:last-child td { border-bottom: none; }
+        .btn { display: inline-block; padding: 6px 14px; border-radius: 5px; font-size: 13px; text-decoration: none; cursor: pointer; border: none; }
+        .btn-primary { background: #2563eb; color: #fff; }
+        .btn-danger { background: #dc2626; color: #fff; }
+        .btn-secondary { background: #6b7280; color: #fff; }
+        .btn:hover { opacity: 0.88; }
+        form .field { margin-bottom: 14px; }
+        form label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+        form input, form select, form textarea { width: 100%; padding: 7px 10px; border: 1px solid #cbd5e1; border-radius: 5px; font-size: 14px; }
+        form textarea { min-height: 120px; font-family: monospace; }
+        .alert { padding: 10px 16px; border-radius: 6px; margin-bottom: 16px; font-size: 14px; }
+        .alert-success { background: #dcfce7; color: #166534; }
+        .alert-error { background: #fee2e2; color: #991b1b; }
+        .stat-card { background: #fff; border-radius: 8px; padding: 20px 24px; }
+        .stat-card .value { font-size: 36px; font-weight: 700; color: #2563eb; }
+        .stat-card .label { font-size: 13px; color: #6b7280; margin-top: 4px; }
+        .grid { display: grid; gap: 16px; }
+        .grid-3 { grid-template-columns: repeat(3, 1fr); }
+        .pagination { display: flex; gap: 8px; margin-top: 16px; }
+        .pagination a { padding: 6px 12px; background: #fff; border: 1px solid #e2e8f0; border-radius: 5px; font-size: 13px; text-decoration: none; color: #222; }
+        .pagination a.active { background: #2563eb; color: #fff; border-color: #2563eb; }
+    </style>
+</head>
+<body>
+<nav>
+    <span class="brand">ClassNest</span>
+    <a href="/admin/">Dashboard</a>
+    <a href="/admin/content">Content</a>
+    <a href="/admin/rules">Rules</a>
+    <a href="/admin/health">Health</a>
+</nav>
+<div class="container">
+    {% block content %}{% endblock %}
+</div>
+</body>
+</html>
