@@ -71,7 +71,9 @@ def create_admin_app() -> FastAPI:
         request: Request, page: int = 1, category: Optional[str] = None
     ):
         content_repo = SQLiteContentRepository()
-        per_page = 20
+        settings_repo = SQLiteSettingsRepository()
+        rules = await settings_repo.get_rules()
+        per_page = rules.page_size
         offset = (page - 1) * per_page
         cat: Optional[Category] = None
         if category:
@@ -106,6 +108,12 @@ def create_admin_app() -> FastAPI:
         category: str = Form(...),
         image_url: str = Form(""),
         source_url: str = Form(""),
+        description: str = Form(""),
+        source: str = Form("local"),
+        tags_json: str = Form(""),
+        age_min: Optional[int] = Form(None),
+        age_max: Optional[int] = Form(None),
+        difficulty: str = Form(""),
         image_file: Optional[UploadFile] = File(None),
     ):
         cfg = get_settings()
@@ -121,6 +129,12 @@ def create_admin_app() -> FastAPI:
                 category=cat,
                 image_url=final_image_url,
                 source_url=source_url or None,
+                description=description or None,
+                source=source or "local",
+                tags_json=tags_json or None,
+                age_min=age_min,
+                age_max=age_max,
+                difficulty=difficulty or None,
             )
             return RedirectResponse("/admin/content?success=1", status_code=303)
         except Exception as exc:
@@ -147,6 +161,12 @@ def create_admin_app() -> FastAPI:
         category: str = Form(...),
         image_url: str = Form(""),
         source_url: str = Form(""),
+        description: str = Form(""),
+        source: str = Form("local"),
+        tags_json: str = Form(""),
+        age_min: Optional[int] = Form(None),
+        age_max: Optional[int] = Form(None),
+        difficulty: str = Form(""),
         image_file: Optional[UploadFile] = File(None),
     ):
         cfg = get_settings()
@@ -163,6 +183,12 @@ def create_admin_app() -> FastAPI:
                 category=cat,
                 image_url=final_image_url,
                 source_url=source_url or None,
+                description=description or None,
+                source=source or "local",
+                tags_json=tags_json or None,
+                age_min=age_min,
+                age_max=age_max,
+                difficulty=difficulty or None,
             )
             return RedirectResponse(f"/admin/content/{item_id}/edit?success=1", status_code=303)
         except Exception as exc:
