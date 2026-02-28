@@ -97,12 +97,86 @@ class SQLitePackRepository(AbstractPackRepository):
         return deleted
 
     async def reorder_item(self, pack_item_id: int, new_position: int) -> bool:
+        """Move an item to new_position, shifting other items to maintain contiguous order.
+
+        Processing items in the correct sequential order (descending when moving
+        up, ascending when moving down) ensures each row's target position is
+        always unoccupied, satisfying UNIQUE(pack_id, position) at every step.
+        A negative sentinel parks the target item out of the way during shifts.
+        """
         conn = await get_connection()
+
+        async with conn.execute(
+            "SELECT pack_id, position FROM pack_items WHERE id = ?",
+            (pack_item_id,),
+        ) as cur:
+            row = await cur.fetchone()
+
+        if row is None:
+            return False
+
+        pack_id = row["pack_id"]
+        current_position = row["position"]
+
+        async with conn.execute(
+            "SELECT COALESCE(MAX(position), 0) FROM pack_items WHERE pack_id = ?",
+            (pack_id,),
+        ) as cur:
+            max_row = await cur.fetchone()
+
+        max_position = max_row[0]
+        if max_position == 0:
+            return False
+
+        # Clamp to valid range
+        new_position = max(1, min(new_position, max_position))
+        if new_position == current_position:
+            return True
+
+        # Park target at a unique negative sentinel to free its current slot
+        sentinel = -pack_item_id
+        await conn.execute(
+            "UPDATE pack_items SET position = ? WHERE id = ?",
+            (sentinel, pack_item_id),
+        )
+
+        if new_position < current_position:
+            # Moving up: process items in DESC position order so each item
+            # moves into the slot just vacated by the one processed before it.
+            async with conn.execute(
+                "SELECT id FROM pack_items"
+                " WHERE pack_id = ? AND position >= ? AND position < ?"
+                " ORDER BY position DESC",
+                (pack_id, new_position, current_position),
+            ) as cur:
+                to_shift = await cur.fetchall()
+            for r in to_shift:
+                await conn.execute(
+                    "UPDATE pack_items SET position = position + 1 WHERE id = ?",
+                    (r["id"],),
+                )
+        else:
+            # Moving down: process items in ASC position order.
+            async with conn.execute(
+                "SELECT id FROM pack_items"
+                " WHERE pack_id = ? AND position > ? AND position <= ?"
+                " ORDER BY position ASC",
+                (pack_id, current_position, new_position),
+            ) as cur:
+                to_shift = await cur.fetchall()
+            for r in to_shift:
+                await conn.execute(
+                    "UPDATE pack_items SET position = position - 1 WHERE id = ?",
+                    (r["id"],),
+                )
+
+        # Place target at final position (now unoccupied)
         async with conn.execute(
             "UPDATE pack_items SET position = ? WHERE id = ?",
             (new_position, pack_item_id),
         ) as cur:
             updated = cur.rowcount > 0
+
         await conn.commit()
         return updated
 

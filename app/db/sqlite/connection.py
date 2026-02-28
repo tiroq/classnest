@@ -1,8 +1,15 @@
-"""SQLite connection management with WAL mode enabled."""
+"""SQLite connection management with WAL mode enabled.
+
+Each asyncio Task (and therefore each thread's event loop) receives its own
+aiosqlite connection via a ContextVar.  This prevents the bot and the admin
+panel – which run in separate threads with separate event loops – from ever
+sharing the same connection object.
+"""
 
 from __future__ import annotations
 
 import logging
+from contextvars import ContextVar
 from pathlib import Path
 from typing import Optional
 
@@ -10,38 +17,51 @@ import aiosqlite
 
 logger = logging.getLogger(__name__)
 
+# Module-level path set once by init_db(); safe to read from any thread.
 _db_path: Optional[str] = None
-_connection: Optional[aiosqlite.Connection] = None
+
+# Per-asyncio-task connection; each task gets its own isolated connection.
+_connection_var: ContextVar[Optional[aiosqlite.Connection]] = ContextVar(
+    "_connection_var", default=None
+)
 
 
 async def get_connection() -> aiosqlite.Connection:
-    """Return the shared aiosqlite connection, creating it if necessary."""
-    global _connection, _db_path
-    if _connection is None:
+    """Return the task-local aiosqlite connection, creating it if necessary."""
+    if _db_path is None:
         raise RuntimeError("Database not initialised. Call init_db() first.")
-    return _connection
+    conn = _connection_var.get()
+    if conn is None:
+        conn = await aiosqlite.connect(_db_path)
+        conn.row_factory = aiosqlite.Row
+        await conn.execute("PRAGMA journal_mode=WAL")
+        await conn.execute("PRAGMA foreign_keys=ON")
+        _connection_var.set(conn)
+    return conn
 
 
 async def init_db(path: str) -> None:
-    """Initialise the SQLite database, enable WAL mode, and create schema."""
-    global _connection, _db_path
+    """Set the DB path, create directories, and apply schema migrations."""
+    global _db_path
     _db_path = path
     Path(path).parent.mkdir(parents=True, exist_ok=True)
-    _connection = await aiosqlite.connect(path)
-    _connection.row_factory = aiosqlite.Row
-    await _connection.execute("PRAGMA journal_mode=WAL")
-    await _connection.execute("PRAGMA foreign_keys=ON")
-    await _apply_schema(_connection)
-    await _connection.commit()
+    # Schema migration runs via a short-lived temporary connection so that
+    # the per-task connection pool starts clean.
+    async with aiosqlite.connect(path) as conn:
+        conn.row_factory = aiosqlite.Row
+        await conn.execute("PRAGMA journal_mode=WAL")
+        await conn.execute("PRAGMA foreign_keys=ON")
+        await _apply_schema(conn)
+        await conn.commit()
     logger.info("Database initialised at %s", path)
 
 
 async def close_db() -> None:
-    """Close the database connection."""
-    global _connection
-    if _connection is not None:
-        await _connection.close()
-        _connection = None
+    """Close the task-local connection, if one exists."""
+    conn = _connection_var.get()
+    if conn is not None:
+        await conn.close()
+        _connection_var.set(None)
 
 
 async def _apply_schema(conn: aiosqlite.Connection) -> None:
@@ -76,7 +96,8 @@ async def _apply_schema(conn: aiosqlite.Connection) -> None:
             id              INTEGER PRIMARY KEY AUTOINCREMENT,
             pack_id         INTEGER NOT NULL REFERENCES packs(id) ON DELETE CASCADE,
             content_item_id INTEGER NOT NULL REFERENCES content_items(id) ON DELETE CASCADE,
-            position        INTEGER NOT NULL
+            position        INTEGER NOT NULL,
+            UNIQUE (pack_id, position)
         );
 
         CREATE TABLE IF NOT EXISTS seen_items (

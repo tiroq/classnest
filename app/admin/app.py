@@ -15,6 +15,7 @@ from fastapi.templating import Jinja2Templates
 
 from app.admin.auth import BasicAuthMiddleware
 from app.config.settings import get_settings
+from app.db.sqlite.connection import close_db
 from app.db.sqlite.content_repo import SQLiteContentRepository
 from app.db.sqlite.settings_repo import SQLiteSettingsRepository
 from app.domain.models import Category, Rules
@@ -34,6 +35,13 @@ def create_admin_app() -> FastAPI:
     # Serve uploaded/cached images as static files
     Path(cfg.cache_dir).mkdir(parents=True, exist_ok=True)
     app.mount("/static/cache", StaticFiles(directory=cfg.cache_dir), name="cache")
+
+    @app.middleware("http")
+    async def _db_lifecycle(request: Request, call_next):
+        """Close the task-local DB connection after each request."""
+        response = await call_next(request)
+        await close_db()
+        return response
 
     @app.get("/admin/health")
     async def health() -> dict:
@@ -65,7 +73,12 @@ def create_admin_app() -> FastAPI:
         content_repo = SQLiteContentRepository()
         per_page = 20
         offset = (page - 1) * per_page
-        cat = Category(category) if category else None
+        cat: Optional[Category] = None
+        if category:
+            try:
+                cat = Category(category)
+            except ValueError:
+                cat = None
         items = await content_repo.list_all(category=cat, offset=offset, limit=per_page + 1)
         has_next = len(items) > per_page
         return templates.TemplateResponse(
@@ -204,13 +217,39 @@ def create_admin_app() -> FastAPI:
     return app
 
 
+_MAX_UPLOAD_BYTES = 5 * 1024 * 1024   # 5 MB hard limit for image uploads
+_CHUNK_SIZE_BYTES = 64 * 1024          # 64 KB read buffer
+
+
 async def _save_upload(upload: UploadFile, cache_dir: str) -> str:
-    """Save an uploaded image file and return its URL-like path."""
+    """Stream an uploaded image to disk and return the local filesystem path.
+
+    Raises ValueError if the file exceeds _MAX_UPLOAD_BYTES.
+    The returned path is stored in ``content_items.image_url``; the export
+    engine and ``fetch_image`` both recognise a non-HTTP path and read it
+    directly from disk.
+    """
     import hashlib
 
-    content = await upload.read()
-    digest = hashlib.sha256(content).hexdigest()
+    hasher = hashlib.sha256()
+    chunks: list[bytes] = []
+    total = 0
+
+    while True:
+        chunk = await upload.read(_CHUNK_SIZE_BYTES)
+        if not chunk:
+            break
+        total += len(chunk)
+        if total > _MAX_UPLOAD_BYTES:
+            raise ValueError(
+                f"Upload exceeds maximum allowed size of "
+                f"{_MAX_UPLOAD_BYTES // 1024 // 1024} MB"
+            )
+        hasher.update(chunk)
+        chunks.append(chunk)
+
     suffix = Path(upload.filename or "file.jpg").suffix or ".jpg"
-    dest = Path(cache_dir) / f"{digest}{suffix}"
-    dest.write_bytes(content)
-    return f"/static/cache/{digest}{suffix}"
+    dest = Path(cache_dir) / f"{hasher.hexdigest()}{suffix}"
+    dest.write_bytes(b"".join(chunks))
+    # Return the filesystem path so pdf_engine can use the file directly
+    return str(dest)

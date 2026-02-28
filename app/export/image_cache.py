@@ -15,12 +15,22 @@ _TIMEOUT = 10.0
 
 
 async def fetch_image(url: str, cache_dir: str) -> Optional[str]:
-    """Download an image to disk (if not cached) and return the local path.
+    """Return a local filesystem path for the given image URL.
 
-    Returns None if the download fails or the URL is empty.
+    Handles two cases:
+    * A regular HTTP(S) URL — downloaded and cached by sha256 filename.
+    * A filesystem path (locally uploaded via admin panel) — returned as-is
+      if the file exists.
+
+    Returns None if the image is unavailable or the URL is empty.
     """
     if not url:
         return None
+
+    # Locally uploaded images are stored as absolute filesystem paths
+    if not url.startswith(("http://", "https://")):
+        local = Path(url)
+        return str(local) if local.exists() else None
 
     digest = hashlib.sha256(url.encode()).hexdigest()
     suffix = _guess_suffix(url)

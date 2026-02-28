@@ -19,7 +19,6 @@ class Settings(BaseSettings):
     bot_token: str = Field(..., alias="BOT_TOKEN")
 
     # Database
-    db_driver: str = Field("sqlite", alias="DB_DRIVER")
     db_sqlite_path: str = Field("data/classnest.db", alias="DB_SQLITE_PATH")
 
     # File paths

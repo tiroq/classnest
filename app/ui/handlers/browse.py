@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import html
 import logging
 
 from aiogram import Router
@@ -18,8 +19,8 @@ router = Router()
 @router.callback_query(lambda c: c.data == "browse_menu")
 async def cb_browse_menu(callback: CallbackQuery) -> None:
     await callback.message.edit_text(  # type: ignore[union-attr]
-        "📚 *Browse Content*\n\nChoose a category:",
-        parse_mode="Markdown",
+        "📚 <b>Browse Content</b>\n\nChoose a category:",
+        parse_mode="HTML",
         reply_markup=browse_category_menu(),
     )
     await callback.answer()
@@ -27,7 +28,7 @@ async def cb_browse_menu(callback: CallbackQuery) -> None:
 
 @router.callback_query(lambda c: c.data and c.data.startswith("browse:"))
 async def cb_browse_item(callback: CallbackQuery) -> None:
-    """Display the next content item for the selected category and offset."""
+    """Display the content item at the given stable offset for the category."""
     parts = callback.data.split(":")  # type: ignore[union-attr]
     if len(parts) != 3:
         await callback.answer("Invalid action.")
@@ -49,8 +50,8 @@ async def cb_browse_item(callback: CallbackQuery) -> None:
 
     if item is None:
         await callback.message.edit_text(  # type: ignore[union-attr]
-            f"No more items in *{category.value}*.",
-            parse_mode="Markdown",
+            f"No more items in <b>{html.escape(category.value)}</b>.",
+            parse_mode="HTML",
             reply_markup=browse_category_menu(),
         )
         await callback.answer()
@@ -58,17 +59,23 @@ async def cb_browse_item(callback: CallbackQuery) -> None:
 
     await tracking.mark_seen(teacher_id, item.id)
 
-    text = (
-        f"*{item.title}*\n"
-        f"Category: {item.category.value}\n"
-    )
+    text = f"<b>{html.escape(item.title)}</b>\nCategory: {html.escape(item.category.value)}"
     if item.source_url:
-        text += f"[Source]({item.source_url})"
+        text += f'\n<a href="{html.escape(item.source_url)}">Source</a>'
 
     await callback.message.edit_text(  # type: ignore[union-attr]
         text,
-        parse_mode="Markdown",
+        parse_mode="HTML",
         reply_markup=browse_item_actions(category.value, offset, item.id),
-        disable_web_page_preview=False,
     )
     await callback.answer()
+
+
+@router.callback_query(lambda c: c.data and c.data.startswith("hide_item:"))
+async def cb_hide_item(callback: CallbackQuery) -> None:
+    """Hide the item so it no longer appears in browse results."""
+    teacher_id = callback.from_user.id  # type: ignore[union-attr]
+    item_id = int(callback.data.split(":")[1])  # type: ignore[union-attr]
+    tracking = make_tracking_service()
+    await tracking.mark_hidden(teacher_id, item_id)
+    await callback.answer("🙈 Item hidden.")

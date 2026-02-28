@@ -69,12 +69,17 @@ class PackService:
         await self._packs.clear_pack(pack.id)
 
     async def list_items(self, teacher_id: int) -> list[tuple[PackItem, ContentItem]]:
-        """Return ordered pack items paired with their content objects."""
+        """Return ordered pack items paired with their content objects (single batch fetch)."""
         pack = await self.ensure_active_pack(teacher_id)
-        items = await self._packs.list_items(pack.id)
-        result: list[tuple[PackItem, ContentItem]] = []
-        for pi in items:
-            content = await self._content.get_by_id(pi.content_item_id)
-            if content is not None:
-                result.append((pi, content))
-        return result
+        pack_items = await self._packs.list_items(pack.id)
+        if not pack_items:
+            return []
+        item_ids = [pi.content_item_id for pi in pack_items]
+        content_map = {
+            c.id: c for c in await self._content.get_by_ids(item_ids)
+        }
+        return [
+            (pi, content_map[pi.content_item_id])
+            for pi in pack_items
+            if pi.content_item_id in content_map
+        ]

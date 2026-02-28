@@ -95,6 +95,24 @@ class SQLiteContentRepository(AbstractContentRepository):
         await conn.commit()
         return deleted
 
+    async def get_by_ids(self, item_ids: list[int]) -> list[ContentItem]:
+        """Fetch multiple items by ID in a single query (batch to avoid N+1).
+
+        The f-string only interpolates ``?`` placeholder characters — no user
+        data is embedded in the SQL string — so there is no injection risk.
+        """
+        if not item_ids:
+            return []
+        conn = await get_connection()
+        # Build a parameterised IN clause: "?,?,?" with len(item_ids) slots
+        placeholders = ",".join("?" * len(item_ids))
+        async with conn.execute(
+            f"SELECT * FROM content_items WHERE id IN ({placeholders})",
+            item_ids,
+        ) as cur:
+            rows = await cur.fetchall()
+        return [_row_to_item(r) for r in rows]
+
     async def count(self, category: Optional[Category] = None) -> int:
         conn = await get_connection()
         if category:

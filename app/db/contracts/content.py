@@ -48,5 +48,10 @@ class AbstractContentRepository(ABC):
         ...
 
     @abstractmethod
+    async def get_by_ids(self, item_ids: list[int]) -> list[ContentItem]:
+        """Return all items matching the given IDs (order not guaranteed)."""
+        ...
+
+    @abstractmethod
     async def count(self, category: Optional[Category] = None) -> int:
         ...

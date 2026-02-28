@@ -39,7 +39,13 @@ class ContentSelector:
         category: Category,
         offset: int = 0,
     ) -> Optional[ContentItem]:
-        """Return the best next item for the given teacher and category."""
+        """Return the best item at the given stable offset in the visible list.
+
+        ``offset`` is an index into the full non-hidden item list (ordered by
+        ID), giving stable Prev/Next navigation even as items become "seen".
+        Starting from that offset, we scan forward for the highest-priority
+        eligible item, then fall back to the item at the exact offset position.
+        """
         settings = await self._settings.get_teacher_settings(teacher_id)
         rules = await self._settings.get_rules()
         group_id = settings.current_group
@@ -55,35 +61,36 @@ class ContentSelector:
         all_items = await self._content.list_all(category=category, limit=500)
         visible = [i for i in all_items if i.id not in hidden]
 
-        candidate = _pick(visible, seen_ids, exported_ids, offset)
-        if candidate is not None:
-            return candidate
+        if not visible or offset >= len(visible):
+            return None
 
-        # Fallback: ignore seen/exported constraints
-        if offset < len(visible):
-            return visible[offset]
-        return None
+        return _pick_from_offset(visible, seen_ids, exported_ids, offset)
 
 
-def _pick(
+def _pick_from_offset(
     visible: list[ContentItem],
     seen_ids: set[int],
     exported_ids: set[int],
     offset: int,
-) -> Optional[ContentItem]:
-    """Walk through visible items applying priority filter."""
-    clean: list[ContentItem] = []
-    partially_clean: list[ContentItem] = []
+) -> ContentItem:
+    """Return the best item starting from *offset* in the stable visible list.
 
-    for item in visible:
-        not_exported = item.id not in exported_ids
-        not_seen = item.id not in seen_ids
-        if not_exported and not_seen:
-            clean.append(item)
-        elif not_exported:
-            partially_clean.append(item)
+    Scans forward from ``offset`` looking for the highest-priority item:
+      1. Not recently exported and not recently seen
+      2. Not recently exported (but seen)
+      3. Fallback: the item at the exact offset position
+    """
+    # Priority 1: clean (not exported, not seen)
+    for i in range(offset, len(visible)):
+        item = visible[i]
+        if item.id not in exported_ids and item.id not in seen_ids:
+            return item
 
-    preferred = clean if clean else partially_clean
-    if offset < len(preferred):
-        return preferred[offset]
-    return None
+    # Priority 2: not exported even if seen
+    for i in range(offset, len(visible)):
+        item = visible[i]
+        if item.id not in exported_ids:
+            return item
+
+    # Fallback: stable position (item may be seen/exported)
+    return visible[offset]

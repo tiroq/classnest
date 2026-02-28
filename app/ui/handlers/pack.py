@@ -2,23 +2,21 @@
 
 from __future__ import annotations
 
+import html
 import logging
 import os
 import uuid
-from datetime import datetime, timezone
 
 from aiogram import Router
 from aiogram.types import CallbackQuery, FSInputFile
 
 from app.config.settings import get_settings
-from app.domain.models import Layout
 from app.ui.dependencies import (
-    make_content_repo,
     make_pack_service,
     make_settings_repo,
     make_tracking_service,
 )
-from app.ui.keyboards import main_menu, pack_menu
+from app.ui.keyboards import pack_menu
 
 logger = logging.getLogger(__name__)
 router = Router()
@@ -31,16 +29,16 @@ async def cb_pack_menu(callback: CallbackQuery) -> None:
     items = await pack_svc.list_items(teacher_id)
 
     if not items:
-        text = "🗂 *Your Pack*\n\nPack is empty. Browse content to add items."
+        text = "🗂 <b>Your Pack</b>\n\nPack is empty. Browse content to add items."
     else:
-        lines = [f"🗂 *Your Pack* ({len(items)} items)\n"]
+        lines = [f"🗂 <b>Your Pack</b> ({len(items)} items)\n"]
         for pi, content in items:
-            lines.append(f"{pi.position}. {content.title}")
+            lines.append(f"{pi.position}. {html.escape(content.title)}")
         text = "\n".join(lines)
 
     await callback.message.edit_text(  # type: ignore[union-attr]
         text,
-        parse_mode="Markdown",
+        parse_mode="HTML",
         reply_markup=pack_menu(bool(items)),
     )
     await callback.answer()
@@ -107,8 +105,15 @@ async def cb_export_pack(callback: CallbackQuery) -> None:
 
     if os.path.exists(out_path):
         doc = FSInputFile(out_path)
-        await callback.message.answer_document(  # type: ignore[union-attr]
-            doc, caption="📄 Your activity pack"
-        )
+        try:
+            await callback.message.answer_document(  # type: ignore[union-attr]
+                doc, caption="📄 Your activity pack"
+            )
+        finally:
+            # Clean up export file to avoid unbounded disk accumulation
+            try:
+                os.remove(out_path)
+            except OSError:
+                logger.warning("Could not remove export file: %s", out_path)
     else:
         await callback.message.answer("⚠️ Export failed.")  # type: ignore[union-attr]
