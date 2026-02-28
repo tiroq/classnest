@@ -1,5 +1,6 @@
 """Application configuration loaded from environment variables."""
 
+import functools
 from pathlib import Path
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -38,12 +39,7 @@ class Settings(BaseSettings):
         Path(self.db_sqlite_path).parent.mkdir(parents=True, exist_ok=True)
 
 
-_settings: Settings | None = None
-
-
+@functools.lru_cache(maxsize=1)
 def get_settings() -> Settings:
-    """Return the singleton Settings instance."""
-    global _settings
-    if _settings is None:
-        _settings = Settings()
-    return _settings
+    """Return the singleton Settings instance (thread-safe via lru_cache)."""
+    return Settings()

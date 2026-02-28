@@ -81,8 +81,7 @@ class SQLitePackRepository(AbstractPackRepository):
         ) as cur:
             item_id = cur.lastrowid
         await conn.commit()
-        conn2 = await get_connection()
-        async with conn2.execute(
+        async with conn.execute(
             "SELECT * FROM pack_items WHERE id = ?", (item_id,)
         ) as cur2:
             pi_row = await cur2.fetchone()

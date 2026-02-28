@@ -10,6 +10,7 @@ from typing import Optional
 
 from fastapi import FastAPI, File, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from app.admin.auth import BasicAuthMiddleware
@@ -29,6 +30,10 @@ def create_admin_app() -> FastAPI:
     cfg = get_settings()
     app = FastAPI(title="ClassNest Admin", docs_url=None, redoc_url=None)
     app.add_middleware(BasicAuthMiddleware, username=cfg.admin_username, password=cfg.admin_password)
+
+    # Serve uploaded/cached images as static files
+    Path(cfg.cache_dir).mkdir(parents=True, exist_ok=True)
+    app.mount("/static/cache", StaticFiles(directory=cfg.cache_dir), name="cache")
 
     @app.get("/admin/health")
     async def health() -> dict:

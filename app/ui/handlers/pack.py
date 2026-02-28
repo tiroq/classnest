@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
+import uuid
 from datetime import datetime, timezone
 
 from aiogram import Router
@@ -91,7 +92,7 @@ async def cb_export_pack(callback: CallbackQuery) -> None:
     await callback.answer("⏳ Generating PDF…")
     content_items = [ci for _, ci in items_with_pi]
 
-    filename = f"pack_{teacher_id}_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}.pdf"
+    filename = f"pack_{uuid.uuid4().hex}.pdf"
     out_path = await export_pack(
         items=content_items,
         layout=layout,
