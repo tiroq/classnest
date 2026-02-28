@@ -30,6 +30,40 @@
         <label>Source URL</label>
         <input name="source_url" value="{{ item.source_url or '' if item else '' }}">
     </div>
+    <div class="field">
+        <label>Description</label>
+        <textarea name="description" rows="3">{{ item.description or '' if item else '' }}</textarea>
+    </div>
+    <div class="field">
+        <label>Source</label>
+        <select name="source">
+            <option value="local" {% if item and item.source == "local" %}selected{% endif %}>Local</option>
+            <option value="pinterest" {% if item and item.source == "pinterest" %}selected{% endif %}>Pinterest</option>
+        </select>
+    </div>
+    <div class="field">
+        <label>Tags (JSON)</label>
+        <input name="tags_json" value="{{ item.tags_json or '' if item else '' }}">
+    </div>
+    <div class="field" style="display:flex;gap:1rem">
+        <div style="flex:1">
+            <label>Age Min</label>
+            <input type="number" name="age_min" value="{{ item.age_min if item and item.age_min is not none else '' }}">
+        </div>
+        <div style="flex:1">
+            <label>Age Max</label>
+            <input type="number" name="age_max" value="{{ item.age_max if item and item.age_max is not none else '' }}">
+        </div>
+    </div>
+    <div class="field">
+        <label>Difficulty</label>
+        <select name="difficulty">
+            <option value="" {% if not item or not item.difficulty %}selected{% endif %}></option>
+            <option value="easy" {% if item and item.difficulty == "easy" %}selected{% endif %}>Easy</option>
+            <option value="medium" {% if item and item.difficulty == "medium" %}selected{% endif %}>Medium</option>
+            <option value="hard" {% if item and item.difficulty == "hard" %}selected{% endif %}>Hard</option>
+        </select>
+    </div>
     <button type="submit" class="btn btn-primary">Save</button>
     <a href="/admin/content" class="btn btn-secondary">Cancel</a>
 </form>
