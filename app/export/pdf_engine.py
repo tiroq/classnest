@@ -44,6 +44,7 @@ async def export_pack(
     export_dir: str,
     cache_dir: str,
     filename: str,
+    show_source_footer: bool = True,
 ) -> str:
     """Render items to a PDF file and return the absolute file path.
 
@@ -76,7 +77,7 @@ async def export_pack(
             if item.image_url:
                 img_path = await fetch_image(item.image_url, cache_dir)
 
-            _draw_cell(canvas, item, x, y, cell_w, cell_h, img_path)
+            _draw_cell(canvas, item, x, y, cell_w, cell_h, img_path, show_source=show_source_footer)
 
         canvas.showPage()
 
@@ -93,6 +94,7 @@ def _draw_cell(
     w: float,
     h: float,
     img_path: Optional[str],
+    show_source: bool = True,
 ) -> None:
     """Draw a single item cell with image, title, and optional source."""
     # Cell border
@@ -103,7 +105,7 @@ def _draw_cell(
     inner_x = x + CELL_PAD
     inner_w = w - 2 * CELL_PAD
 
-    footer_reserve = FOOTER_H if item.source_url else 0
+    footer_reserve = FOOTER_H if (show_source and item.source_url) else 0
     title_y = y + footer_reserve
     img_h = h - TITLE_H - footer_reserve - 2 * CELL_PAD
     img_y = title_y + TITLE_H
@@ -134,7 +136,7 @@ def _draw_cell(
     canvas.drawString(inner_x, title_y + 4 * mm, title_text)
 
     # Source footer
-    if item.source_url and footer_reserve > 0:
+    if show_source and item.source_url and footer_reserve > 0:
         source_text = _truncate(item.source_url, 60)
         canvas.setFont("Helvetica", 6)
         canvas.setFillColor(colors.grey)
