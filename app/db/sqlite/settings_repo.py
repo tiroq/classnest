@@ -55,18 +55,24 @@ class SQLiteSettingsRepository(AbstractSettingsRepository):
             seen_window=row["seen_window"],
             exported_window=row["exported_window"],
             max_pack_size=row["max_pack_size"],
+            default_layout=Layout(row["default_layout"]) if row["default_layout"] else Layout.A4_2X2,
+            page_size=row["page_size"] if row["page_size"] else 20,
+            pdf_footer_show_source=bool(row["pdf_footer_show_source"]) if row["pdf_footer_show_source"] is not None else True,
         )
 
     async def save_rules(self, rules: Rules) -> None:
         conn = await get_connection()
         await conn.execute(
-            "INSERT INTO rules (id, seen_window, exported_window, max_pack_size)"
-            " VALUES (1, ?, ?, ?)"
+            "INSERT INTO rules (id, seen_window, exported_window, max_pack_size, default_layout, page_size, pdf_footer_show_source)"
+            " VALUES (1, ?, ?, ?, ?, ?, ?)"
             " ON CONFLICT(id) DO UPDATE SET"
             "   seen_window     = excluded.seen_window,"
             "   exported_window = excluded.exported_window,"
-            "   max_pack_size   = excluded.max_pack_size",
-            (rules.seen_window, rules.exported_window, rules.max_pack_size),
+            "   max_pack_size   = excluded.max_pack_size,"
+            "   default_layout          = excluded.default_layout,"
+            "   page_size               = excluded.page_size,"
+            "   pdf_footer_show_source  = excluded.pdf_footer_show_source",
+            (rules.seen_window, rules.exported_window, rules.max_pack_size, rules.default_layout.value, rules.page_size, int(rules.pdf_footer_show_source)),
         )
         await conn.commit()
 

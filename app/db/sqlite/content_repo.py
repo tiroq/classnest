@@ -49,13 +49,19 @@ class SQLiteContentRepository(AbstractContentRepository):
         category: Category,
         image_url: Optional[str],
         source_url: Optional[str],
+        description: Optional[str] = None,
+        source: str = "local",
+        tags_json: Optional[str] = None,
+        age_min: Optional[int] = None,
+        age_max: Optional[int] = None,
+        difficulty: Optional[str] = None,
     ) -> ContentItem:
         conn = await get_connection()
         now = datetime.now(timezone.utc).isoformat()
         async with conn.execute(
-            "INSERT INTO content_items (title, category, image_url, source_url, created_at)"
-            " VALUES (?, ?, ?, ?, ?)",
-            (title, category.value, image_url, source_url, now),
+            "INSERT INTO content_items (title, category, image_url, source_url, description, source, tags_json, age_min, age_max, difficulty, created_at)"
+            " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (title, category.value, image_url, source_url, description, source, tags_json, age_min, age_max, difficulty, now),
         ) as cur:
             row_id = cur.lastrowid
         await conn.commit()
@@ -70,6 +76,12 @@ class SQLiteContentRepository(AbstractContentRepository):
         category: Optional[Category] = None,
         image_url: Optional[str] = None,
         source_url: Optional[str] = None,
+        description: Optional[str] = None,
+        source: Optional[str] = None,
+        tags_json: Optional[str] = None,
+        age_min: Optional[int] = None,
+        age_max: Optional[int] = None,
+        difficulty: Optional[str] = None,
     ) -> Optional[ContentItem]:
         existing = await self.get_by_id(item_id)
         if existing is None:
@@ -77,11 +89,18 @@ class SQLiteContentRepository(AbstractContentRepository):
         new_title = title if title is not None else existing.title
         new_category = category if category is not None else existing.category
         new_image = image_url if image_url is not None else existing.image_url
-        new_source = source_url if source_url is not None else existing.source_url
+        new_source_url = source_url if source_url is not None else existing.source_url
+        new_description = description if description is not None else existing.description
+        new_source = source if source is not None else existing.source
+        new_tags_json = tags_json if tags_json is not None else existing.tags_json
+        new_age_min = age_min if age_min is not None else existing.age_min
+        new_age_max = age_max if age_max is not None else existing.age_max
+        new_difficulty = difficulty if difficulty is not None else existing.difficulty
         conn = await get_connection()
         await conn.execute(
-            "UPDATE content_items SET title=?, category=?, image_url=?, source_url=? WHERE id=?",
-            (new_title, new_category.value, new_image, new_source, item_id),
+            "UPDATE content_items SET title=?, category=?, image_url=?, source_url=?,"
+            " description=?, source=?, tags_json=?, age_min=?, age_max=?, difficulty=? WHERE id=?",
+            (new_title, new_category.value, new_image, new_source_url, new_description, new_source, new_tags_json, new_age_min, new_age_max, new_difficulty, item_id),
         )
         await conn.commit()
         return await self.get_by_id(item_id)
@@ -133,5 +152,11 @@ def _row_to_item(row: aiosqlite.Row) -> ContentItem:
         category=Category(row["category"]),
         image_url=row["image_url"],
         source_url=row["source_url"],
+        description=row["description"],
+        source=row["source"] if row["source"] else "local",
+        tags_json=row["tags_json"],
+        age_min=row["age_min"],
+        age_max=row["age_max"],
+        difficulty=row["difficulty"],
         created_at=datetime.fromisoformat(row["created_at"]),
     )

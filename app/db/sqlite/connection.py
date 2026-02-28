@@ -74,6 +74,12 @@ async def _apply_schema(conn: aiosqlite.Connection) -> None:
             category    TEXT    NOT NULL,
             image_url   TEXT,
             source_url  TEXT,
+            description TEXT,
+            source      TEXT    NOT NULL DEFAULT 'local',
+            tags_json   TEXT,
+            age_min     INTEGER,
+            age_max     INTEGER,
+            difficulty  TEXT,
             created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
         );
         CREATE INDEX IF NOT EXISTS idx_content_category ON content_items(category);
@@ -129,9 +135,30 @@ async def _apply_schema(conn: aiosqlite.Connection) -> None:
             id               INTEGER PRIMARY KEY CHECK (id = 1),
             seen_window      INTEGER NOT NULL DEFAULT 20,
             exported_window  INTEGER NOT NULL DEFAULT 10,
-            max_pack_size    INTEGER NOT NULL DEFAULT 12
+            max_pack_size    INTEGER NOT NULL DEFAULT 12,
+            default_layout          TEXT    NOT NULL DEFAULT 'a4_2x2',
+            page_size               INTEGER NOT NULL DEFAULT 20,
+            pdf_footer_show_source  INTEGER NOT NULL DEFAULT 1
         );
-        INSERT OR IGNORE INTO rules (id, seen_window, exported_window, max_pack_size)
-            VALUES (1, 20, 10, 12);
+        INSERT OR IGNORE INTO rules (id, seen_window, exported_window, max_pack_size, default_layout, page_size, pdf_footer_show_source)
+            VALUES (1, 20, 10, 12, 'a4_2x2', 20, 1);
         """
     )
+
+    # Migrate existing tables — add columns if missing
+    _migrations = [
+        ("content_items", "description", "TEXT"),
+        ("content_items", "source", "TEXT NOT NULL DEFAULT 'local'"),
+        ("content_items", "tags_json", "TEXT"),
+        ("content_items", "age_min", "INTEGER"),
+        ("content_items", "age_max", "INTEGER"),
+        ("content_items", "difficulty", "TEXT"),
+        ("rules", "default_layout", "TEXT NOT NULL DEFAULT 'a4_2x2'"),
+        ("rules", "page_size", "INTEGER NOT NULL DEFAULT 20"),
+        ("rules", "pdf_footer_show_source", "INTEGER NOT NULL DEFAULT 1"),
+    ]
+    for table, col, col_type in _migrations:
+        try:
+            await conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} {col_type}")
+        except Exception:
+            pass  # Column already exists
