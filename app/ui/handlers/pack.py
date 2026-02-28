@@ -80,6 +80,7 @@ async def cb_export_pack(callback: CallbackQuery) -> None:
     tracking_svc = make_tracking_service()
 
     teacher_settings = await settings_repo.get_teacher_settings(teacher_id)
+    rules = await settings_repo.get_rules()
     layout = teacher_settings.preferred_layout
 
     items_with_pi = await pack_svc.list_items(teacher_id)
@@ -97,6 +98,7 @@ async def cb_export_pack(callback: CallbackQuery) -> None:
         export_dir=settings_obj.export_dir,
         cache_dir=settings_obj.cache_dir,
         filename=filename,
+        show_source_footer=rules.pdf_footer_show_source,
     )
 
     group_id = teacher_settings.current_group
