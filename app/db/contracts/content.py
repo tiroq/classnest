@@ -29,6 +29,12 @@ class AbstractContentRepository(ABC):
         category: Category,
         image_url: Optional[str],
         source_url: Optional[str],
+        description: Optional[str] = None,
+        source: str = "local",
+        tags_json: Optional[str] = None,
+        age_min: Optional[int] = None,
+        age_max: Optional[int] = None,
+        difficulty: Optional[str] = None,
     ) -> ContentItem:
         ...
 
@@ -40,6 +46,12 @@ class AbstractContentRepository(ABC):
         category: Optional[Category] = None,
         image_url: Optional[str] = None,
         source_url: Optional[str] = None,
+        description: Optional[str] = None,
+        source: Optional[str] = None,
+        tags_json: Optional[str] = None,
+        age_min: Optional[int] = None,
+        age_max: Optional[int] = None,
+        difficulty: Optional[str] = None,
     ) -> Optional[ContentItem]:
         ...
 
