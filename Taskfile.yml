@@ -1,0 +1,32 @@
+version: "3"
+
+tasks:
+  run:
+    desc: "Run ClassNest locally"
+    cmds:
+      - python main.py
+
+  docker-up:
+    desc: "Build and start Docker container"
+    cmds:
+      - docker-compose up --build -d
+
+  docker-down:
+    desc: "Stop Docker container"
+    cmds:
+      - docker-compose down
+
+  seed:
+    desc: "Seed the database with sample content"
+    cmds:
+      - python scripts/seed.py
+
+  lint:
+    desc: "Run ruff linter"
+    cmds:
+      - ruff check app/ main.py
+
+  release-notes:
+    desc: "Print release notes from CHANGELOG"
+    cmds:
+      - cat CHANGELOG.md || echo "No CHANGELOG.md found"

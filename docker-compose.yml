@@ -1,0 +1,13 @@
+version: "3.9"
+
+services:
+  classnest:
+    build: .
+    container_name: classnest
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+    ports:
+      - "8000:8000"
