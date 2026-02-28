@@ -29,6 +29,12 @@ class ContentItem(BaseModel):
     category: Category
     image_url: Optional[str] = None
     source_url: Optional[str] = None
+    description: Optional[str] = None
+    source: str = "local"          # "local" | "pinterest" — discriminator per SPEC
+    tags_json: Optional[str] = None  # free-form JSON string
+    age_min: Optional[int] = None
+    age_max: Optional[int] = None
+    difficulty: Optional[str] = None  # e.g. "easy", "medium", "hard"
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
@@ -67,6 +73,9 @@ class Rules(BaseModel):
         10, description="Number of recent exported items per group to avoid"
     )
     max_pack_size: int = Field(12, description="Maximum items allowed in a pack")
+    default_layout: Layout = Layout.A4_2X2
+    page_size: int = Field(20, description="Number of items per page in UI")
+    pdf_footer_show_source: bool = Field(True, description="Show source URL in PDF footer")
 
 
 class SeenItem(BaseModel):
